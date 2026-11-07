@@ -1,0 +1,450 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="RiskPilot">
+<meta name="theme-color" content="#090f1e">
+<title>RiskPilot Trading Desk</title>
+<style>
+:root{color-scheme:dark;--bg:#090f1e;--card:#151f32;--line:#2c3950;--text:#f2f6ff;--muted:#98abc7;--green:#36e4ab;--red:#ff738b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:650px;margin:auto;padding:22px 16px 95px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+h1{font-size:26px;margin:0}h2{font-size:19px;margin:0 0 17px}
+p,small{color:var(--muted)}
+.logo{color:var(--green)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:19px;margin:15px 0}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.metric{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 9px}
+.metric small{font-size:10px}.metric strong{display:block;font-size:20px;margin-top:7px}
+label{display:block;color:var(--muted);font-size:13px;font-weight:600;margin:15px 0 7px}
+input,select,button{font:inherit}
+input,select{width:100%;background:#0c1525;border:1px solid #40516c;border-radius:12px;color:white;padding:15px;font-size:17px}
+input:focus,select:focus{outline:2px solid #37cfa9}
+button{border:0;border-radius:12px;padding:14px 16px;font-weight:700;cursor:pointer}
+.primary{background:var(--green);color:#052018;width:100%}
+.secondary{background:#293952;color:white}
+.danger{background:#512b3d;color:#ffc4ce}
+.tabs{display:flex;gap:8px}
+.tabs button{flex:1;background:#28354c;color:white}
+.tabs button.active{background:#36e4ab;color:#061d16}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.result{background:#101c2c;border:1px solid #304761;border-radius:17px;padding:18px}
+.big{font-size:58px;font-weight:800;line-height:1.1}
+.green{color:var(--green)}.red{color:var(--red)}
+.line{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.line span:first-child{color:var(--muted)}
+.status{margin:12px 0;padding:12px;border-radius:12px;background:#263449;font-size:13px}
+.good{background:#153f36;color:#b0ffe0}
+.bad{background:#482634;color:#ffc3ce}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.actions button{flex:1}
+.entry{border-bottom:1px solid var(--line);padding:13px 0}
+.entry .line{border:0;padding:3px 0}
+footer{text-align:center;color:var(--muted);font-size:12px;line-height:1.6}
+@media(max-width:370px){.metric strong{font-size:17px}.big{font-size:48px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div>
+<h1><span class="logo">◆</span> RiskPilot</h1>
+<small>FUTURES RISK DESK</small>
+</div>
+<span style="color:#36e4ab">● OFFLINE</span>
+</header>
+
+<section class="grid">
+<div class="metric"><small>ACCOUNT</small><strong>$25K</strong></div>
+<div class="metric"><small>MAX TRADE RISK</small><strong class="red">$50</strong></div>
+<div class="metric"><small>MINIMUM TP</small><strong class="green">$100</strong></div>
+</section>
+
+<section class="card">
+<h2>Position Calculator</h2>
+<div class="tabs">
+<button id="microBtn" class="active" onclick="setMode('micro')">Micro</button>
+<button id="standardBtn" onclick="setMode('standard')">Standard</button>
+</div>
+
+<label>Futures Contract</label>
+<select id="symbol" onchange="calculate()"></select>
+
+<label>Direction</label>
+<div class="tabs">
+<button id="longBtn" class="active" onclick="setSide('long')">↑ Long</button>
+<button id="shortBtn" onclick="setSide('short')">↓ Short</button>
+</div>
+
+<label>Entry Price</label>
+<input id="entry" type="number" inputmode="decimal" step="any" placeholder="e.g. 25000" oninput="calculate()">
+
+<div class="two">
+<div>
+<label>Stop Distance (Ticks)</label>
+<input id="ticks" type="number" inputmode="numeric" value="50" min="1" step="1" oninput="calculate()">
+</div>
+<div>
+<label>Round-Trip Fee / Contract ($)</label>
+<input id="fee" type="number" inputmode="decimal" value="0" min="0" step="0.01" oninput="calculate()">
+</div>
+</div>
+<small>Enter the actual stop distance required by your trading setup. Fees default to zero until you enter your Tradovate costs.</small>
+</section>
+
+<section class="card">
+<h2>Trade Decision</h2>
+<div class="result">
+<small>MAXIMUM ALLOWED WHOLE CONTRACTS</small>
+<div class="big" id="quantity">—</div>
+<div id="status" class="status">Enter a valid entry price.</div>
+<div class="line"><span>Stop Loss</span><strong class="red" id="stop">—</strong></div>
+<div class="line"><span>Take Profit</span><strong class="green" id="target">—</strong></div>
+<div class="line"><span>Estimated Loss</span><strong id="riskResult">—</strong></div>
+<div class="line"><span>Estimated Net TP</span><strong id="reward">—</strong></div>
+<div class="line"><span>Risk / Reward</span><strong id="rr">—</strong></div>
+<div class="line"><span>TP Distance</span><strong id="targetTicks">—</strong></div>
+</div>
+<button class="primary" style="margin-top:15px" onclick="copyPlan()">Copy Trade Plan</button>
+</section>
+
+<section class="card">
+<h2>Daily Risk Control</h2>
+<div class="line"><span>Daily Loss Budget</span><strong>$100.00</strong></div>
+<div class="line"><span>Recorded Losses Today</span><strong class="red" id="usedLoss">$0.00</strong></div>
+<div class="line"><span>Remaining Loss Budget</span><strong class="green" id="remaining">$100.00</strong></div>
+<div class="line"><span>Today's Net P&L</span><strong id="netPnl">$0.00</strong></div>
+<div id="dayStatus" class="status good">Daily risk available</div>
+<small>Winning trades do not restore the daily loss allowance. This is a calculator guardrail, not a broker-enforced lockout.</small>
+</section>
+
+<section class="card">
+<h2>Trading Journal</h2>
+<label>Closed Trade Result (USD, after fees)</label>
+<input id="pnl" type="number" inputmode="decimal" placeholder="e.g. -50 or 101" step="0.01">
+<button class="primary" style="margin-top:12px" onclick="addTrade()">Save Closed Trade</button>
+<div id="journal"></div>
+<div class="actions" style="margin-top:16px">
+<button class="secondary" onclick="exportData()">Export Backup</button>
+<button class="secondary" onclick="document.getElementById('restore').click()">Restore Backup</button>
+</div>
+<input type="file" id="restore" accept=".json,application/json" hidden onchange="importData(event)">
+</section>
+
+<section class="card">
+<h2>Contract Information</h2>
+<div class="line"><span>Contract</span><strong id="contractName">—</strong></div>
+<div class="line"><span>Tick Size</span><strong id="tickSize">—</strong></div>
+<div class="line"><span>Tick Value</span><strong id="tickValue">—</strong></div>
+<div class="line"><span>Risk Per Contract</span><strong id="perContract">—</strong></div>
+</section>
+
+<footer>
+RiskPilot · Personal Risk Management Calculator<br>
+Not connected to TradingView or Tradovate.<br>
+Gross calculations use reference contract specifications; real outcomes can differ due to commissions, slippage, fills, and exchange rule changes. Stop orders do not guarantee a maximum realized loss. Verify contract details with CME and Tradovate before trading. Export regular backups.
+</footer>
+</main>
+
+<script>
+"use strict";
+
+// tick = minimum price movement
+// value = USD per tick per contract
+const products=[
+["MES","Micro S&P 500","micro",0.25,1.25],
+["MNQ","Micro Nasdaq","micro",0.25,0.50],
+["MYM","Micro Dow","micro",1,0.50],
+["M2K","Micro Russell 2000","micro",0.1,0.50],
+["MGC","Micro Gold","micro",0.1,1],
+["SIL","Micro Silver","micro",0.005,5],
+["M6E","Micro Euro FX","micro",0.0001,1.25],
+["M6B","Micro British Pound","micro",0.0001,0.625],
+["ES","E-mini S&P 500","standard",0.25,12.5],
+["NQ","E-mini Nasdaq","standard",0.25,5],
+["YM","E-mini Dow","standard",1,5],
+["RTY","E-mini Russell 2000","standard",0.1,5],
+["GC","Gold","standard",0.1,10],
+["SI","Silver","standard",0.005,25],
+["6E","Euro FX","standard",0.00005,6.25],
+["6B","British Pound","standard",0.0001,6.25]
+];
+
+const $=id=>document.getElementById(id);
+const money=n=>"$"+Number(n).toFixed(2);
+const getNum=id=>Number($(id).value);
+const dateKey=()=>new Date().toLocaleDateString("en-CA");
+let mode="micro",side="long",lastPlan=null;
+
+function loadJournal(){
+ try{
+  const data=JSON.parse(localStorage.getItem("riskpilot_trades")||"[]");
+  return Array.isArray(data)?data.filter(x=>
+   x&&typeof x.date==="string"&&
+   typeof x.pnl==="number"&&Number.isFinite(x.pnl)
+  ):[];
+ }catch(e){return []}
+}
+let trades=loadJournal();
+
+function saveJournal(){
+ try{
+  localStorage.setItem("riskpilot_trades",JSON.stringify(trades));
+  return true;
+ }catch(e){
+  alert("Storage unavailable. Export your backup or use a hosted version.");
+  return false;
+ }
+}
+
+function setMode(next){
+ mode=next;
+ $("microBtn").classList.toggle("active",mode==="micro");
+ $("standardBtn").classList.toggle("active",mode==="standard");
+ const list=products.filter(x=>x[2]===mode);
+ $("symbol").replaceChildren();
+ for(const p of list){
+  const opt=document.createElement("option");
+  opt.value=p[0];
+  opt.textContent=p[0]+" — "+p[1];
+  $("symbol").append(opt);
+ }
+ $("entry").value="";
+ calculate();
+}
+
+function setSide(next){
+ side=next;
+ $("longBtn").classList.toggle("active",side==="long");
+ $("shortBtn").classList.toggle("active",side==="short");
+ calculate();
+}
+
+function todayTrades(){
+ return trades.filter(x=>x.date===dateKey());
+}
+
+function dayStats(){
+ const daily=todayTrades();
+ const losses=daily.reduce((s,x)=>s+Math.max(0,-x.pnl),0);
+ const net=daily.reduce((s,x)=>s+x.pnl,0);
+ return {losses,net,remaining:Math.max(0,100-losses)};
+}
+
+function updateJournal(){
+ const st=dayStats();
+ $("usedLoss").textContent=money(st.losses);
+ $("remaining").textContent=money(st.remaining);
+ $("netPnl").textContent=(st.net<0?"-":"")+money(Math.abs(st.net));
+ $("netPnl").className=st.net>=0?"green":"red";
+ $("dayStatus").textContent=st.remaining<=0?
+  "DAILY LIMIT REACHED — NO NEW TRADE":
+  "Daily remaining loss budget: "+money(st.remaining);
+ $("dayStatus").className=st.remaining<=0?"status bad":"status good";
+
+ const box=$("journal");
+ box.replaceChildren();
+ const all=todayTrades().map((x,i)=>({...x,index:i}));
+ if(!all.length){
+  const p=document.createElement("p");
+  p.textContent="No closed trades recorded today.";
+  box.append(p);
+ }
+ for(const x of all.slice().reverse()){
+  const div=document.createElement("div");
+  div.className="entry";
+  const r=document.createElement("div");
+  r.className="line";
+  const name=document.createElement("span");
+  name.textContent=x.time||"Closed trade";
+  const val=document.createElement("strong");
+  val.textContent=(x.pnl>=0?"+":"")+money(x.pnl);
+  val.className=x.pnl>=0?"green":"red";
+  const del=document.createElement("button");
+  del.textContent="Delete";
+  del.className="danger";
+  del.style.padding="6px 10px";
+  del.onclick=()=>{
+   if(confirm("Delete this journal entry?")){
+    const original=trades.findIndex(t=>t.id===x.id);
+    if(original!==-1){
+     trades.splice(original,1);
+     saveJournal();updateJournal();calculate();
+    }
+   }
+  };
+  r.append(name,val,del);div.append(r);box.append(div);
+ }
+}
+
+function fmt(n,tick){
+ const decimals=tick<0.0001?6:tick<0.001?5:
+ tick<0.01?3:tick<1?2:0;
+ return n.toFixed(decimals);
+}
+
+function clearResults(message){
+ lastPlan=null;
+ $("quantity").textContent="—";
+ $("status").textContent=message;
+ $("status").className="status bad";
+ for(const id of ["stop","target","riskResult","reward","rr","targetTicks"]){
+  $(id).textContent="—";
+ }
+}
+
+function calculate(){
+ const p=products.find(x=>x[0]===$("symbol").value);
+ if(!p)return;
+ const [symbol,name,category,tick,value]=p;
+ $("contractName").textContent=name+" ("+symbol+")";
+ $("tickSize").textContent=String(tick);
+ $("tickValue").textContent=money(value);
+ const entry=getNum("entry"),ticks=getNum("ticks"),fee=getNum("fee");
+ const per=ticks*value+fee;
+ $("perContract").textContent=Number.isFinite(per)&&per>=0?money(per):"—";
+ const remaining=dayStats().remaining;
+ const budget=Math.min(50,remaining);
+
+ if(!($("entry").value.trim())||!Number.isFinite(entry)||entry<=0||
+ !Number.isInteger(ticks)||ticks<=0||!Number.isFinite(fee)||fee<0){
+  clearResults("Enter a valid entry, positive whole ticks, and nonnegative fees.");
+  return;
+ }
+
+ if(Math.abs(entry/tick-Math.round(entry/tick))>0.00001){
+  clearResults("Entry price must align with the contract tick size.");
+  return;
+ }
+
+ if(budget<=0){
+  clearResults("DAILY LOSS BUDGET EXHAUSTED — NO TRADE");
+  $("quantity").textContent="0";
+  return;
+ }
+
+ const qty=Math.floor((budget+1e-8)/per);
+ if(qty<1){
+  clearResults("NO TRADE — One contract exceeds remaining risk allowance.");
+  $("quantity").textContent="0";
+  return;
+ }
+
+ const tpTicks=Math.max(1,Math.ceil((100/qty+fee)/value-1e-9));
+ const sign=side==="long"?1:-1;
+ const stop=entry-sign*ticks*tick;
+ const target=entry+sign*tpTicks*tick;
+ const risk=qty*per;
+ const reward=qty*(tpTicks*value-fee);
+
+ if(stop<=0){
+  clearResults("Stop level is invalid. Check entry and tick distance.");
+  return;
+ }
+
+ $("quantity").textContent=qty;
+ $("stop").textContent=fmt(stop,tick);
+ $("target").textContent=fmt(target,tick);
+ $("riskResult").textContent=money(risk);
+ $("reward").textContent=money(reward);
+ $("rr").textContent="1 : "+(reward/risk).toFixed(2);
+ $("targetTicks").textContent=tpTicks+" ticks";
+ $("status").textContent="WITHIN PLANNED RISK LIMIT — "+qty+" whole contract(s)";
+ $("status").className="status good";
+
+ lastPlan={symbol,side,qty,entry,stop,target,risk,reward,tpTicks,tick};
+}
+
+function copyPlan(){
+ if(!lastPlan){alert("Enter a valid setup first.");return;}
+ const p=lastPlan;
+ const txt=`RiskPilot Trade Plan
+${p.symbol} ${p.side.toUpperCase()}
+Contracts: ${p.qty}
+Entry: ${fmt(p.entry,p.tick)}
+Stop: ${fmt(p.stop,p.tick)}
+Take Profit: ${fmt(p.target,p.tick)}
+Planned Risk: ${money(p.risk)}
+Estimated Net Target: ${money(p.reward)}`;
+ if(navigator.clipboard&&window.isSecureContext){
+  navigator.clipboard.writeText(txt)
+   .then(()=>alert("Trade plan copied."))
+   .catch(()=>prompt("Copy this plan:",txt));
+ }else prompt("Copy this plan:",txt);
+}
+
+function addTrade(){
+ const raw=$("pnl").value.trim();
+ const pnl=Number(raw);
+ if(!raw||!Number.isFinite(pnl)){
+  alert("Enter your actual realized trade P&L.");return;
+ }
+ const now=new Date();
+ trades.push({
+  id:String(now.getTime())+"-"+String(trades.length),
+  date:dateKey(),
+  time:now.toLocaleTimeString(),
+  pnl:Math.round(pnl*100)/100
+ });
+ if(saveJournal()){
+  $("pnl").value="";
+  updateJournal();calculate();
+  if(dayStats().remaining<=0)
+   alert("Your $100 daily loss budget is exhausted. Stop trading.");
+ }
+}
+
+function downloadJSON(data,filename){
+ const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;a.download=filename;
+ document.body.append(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+function exportData(){
+ downloadJSON({
+  application:"RiskPilot",
+  version:1,
+  exportedAt:new Date().toISOString(),
+  trades:trades
+ },"RiskPilot_Backup_"+dateKey()+".json");
+}
+
+function importData(event){
+ const file=event.target.files[0];
+ if(!file)return;
+ const reader=new FileReader();
+ reader.onload=()=>{
+  try{
+   const obj=JSON.parse(reader.result);
+   if(obj.application!=="RiskPilot"||!Array.isArray(obj.trades))
+    throw new Error("Invalid RiskPilot backup");
+   if(!obj.trades.every(x=>
+    x&&typeof x.date==="string"&&
+    typeof x.pnl==="number"&&Number.isFinite(x.pnl)&&
+    typeof x.id==="string"
+   ))throw new Error("Invalid journal entries");
+   if(!confirm("Replace the current journal with this backup?"))return;
+   trades=obj.trades;
+   saveJournal();updateJournal();calculate();
+   alert("Journal restored.");
+  }catch(e){alert("Restore failed: "+e.message);}
+  event.target.value="";
+ };
+ reader.readAsText(file);
+}
+
+setMode("micro");
+$("symbol").value="MNQ";
+updateJournal();
+calculate();
+</script>
+</body>
+</html>
